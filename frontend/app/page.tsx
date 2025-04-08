@@ -2,6 +2,8 @@
 
 import { useRef, useState, useEffect } from "react";
 
+const baseUrl = "http://localhost:8000";
+
 export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -9,6 +11,12 @@ export default function Home() {
   const [hasPermission, setHasPermission] = useState<boolean>(false);
   const [videoStarted, setVideoStarted] = useState<boolean>(false);
   const [snapshot, setSnapshot] = useState<string | null>(null);
+  const [coords, setCoords] = useState({
+    x: null,
+    y: null,
+    w: null,
+    h: null
+  });
 
   const startVideo = async () => {
     // TODO: clean up the video stream when the component unmounts
@@ -43,6 +51,11 @@ export default function Home() {
       setHasPermission(false);
       setVideoStarted(false);
     }
+
+    if (snapshot != null) {
+      URL.revokeObjectURL(snapshot);
+      setSnapshot(null);
+    }
   };
 
   const captureFrame = async () => {
@@ -73,16 +86,22 @@ export default function Home() {
         const formData = new FormData();
         formData.append("file", file);
   
-        const detectResponse = await fetch("http://localhost:8000/detect-smile", {
+        const detectResponse = await fetch(baseUrl + "/detect-smile", {
           method: "POST",
           body: formData,
         });
         const responseJson = await detectResponse.json();
+        setCoords(responseJson.coordinates);
 
-        const imageResponse = await fetch(`http://localhost:8000/smile-image/${responseJson.id}`);
+        const params = new URLSearchParams({ id: responseJson.id });
+        const imageResponse = await fetch(baseUrl + `/smile-image?${params}`);
         const imageBlob = await imageResponse.blob();
+
+        let oldSnapshot = snapshot;
         const resultImageUrl = URL.createObjectURL(imageBlob);
         setSnapshot(resultImageUrl);
+        if (oldSnapshot != null)
+          URL.revokeObjectURL(oldSnapshot);
       }
     }
   };
@@ -96,7 +115,7 @@ export default function Home() {
     const runTaskWithDelay = async () => {
       while (doLoop) {
         await captureFrame();
-        await sleep(500);
+        await sleep(250);
       }
     };
 
@@ -104,6 +123,10 @@ export default function Home() {
 
     return () => { doLoop = false; };
   }, [videoStarted]);
+
+  useEffect(() => {
+    stopVideo();
+  }, []);
 
   const sleep = async (ms: number) => {
     return new Promise<void>(resolve => setTimeout(resolve, ms));
@@ -113,7 +136,7 @@ export default function Home() {
     <div className="m-3">
       <div>
         <div className="p-5 rounded-xl shadow-lg">
-          <h1 className="font-bold text-xl font-sans">Smile Detector 😀</h1>
+          <h1 className="font-bold text-xl font-sans">😀  Smile Detector</h1>
         </div>
       </div>
       <div className="flex justify-center mt-4">
@@ -129,11 +152,17 @@ export default function Home() {
         {snapshot ? (
           <img src={snapshot} alt="Captured frame" className="rounded-xl"/>
         ) : (
-          <p>Testing</p>
+          <p>Loading...</p>
         )}
         </div>
         <div className="w-1/2 bg-amber-50 rounded-xl p-5 ml-2">
           <h1>Coordinates</h1>
+          <div className="ml-3">
+            <p>x: {coords.x}</p>
+            <p>y: {coords.y}</p>
+            <p>w: {coords.w}</p>
+            <p>h: {coords.h}</p>
+          </div>
         </div>
       </div>
       )}

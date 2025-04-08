@@ -50,7 +50,7 @@ async def detectSmile(file: UploadFile):
         has_smile = True
         (x, y, w, h) = smiles[0]
         (x, y, w, h) = (int(x), int(y), int(w), int(h))
-        cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
+        cv2.rectangle(image, (x, y), (x+w, y+h), (32, 223, 255), 2)
 
     file_path = os.path.join(IMAGE_DIRECTORY, str(uuid4()) + ".png")
     cv2.imwrite(file_path, image)
@@ -67,7 +67,7 @@ async def detectSmile(file: UploadFile):
         }
     }
 
-@app.get("/smile-image/{id}")
+@app.get("/smile-image")
 async def getImage(id: int):
     file_path = db.getDetectionFilename(id)
 
