@@ -66,6 +66,9 @@ export default function Home() {
   
         const fileBlob = await response.blob();
         const file = new File([fileBlob], "image.png", { type: fileBlob.type });
+
+        if (file.size === 0)
+          return;
   
         const formData = new FormData();
         formData.append("file", file);
@@ -74,8 +77,10 @@ export default function Home() {
           method: "POST",
           body: formData,
         });
+        const responseJson = await detectResponse.json();
 
-        const imageBlob = await detectResponse.blob();
+        const imageResponse = await fetch(`http://localhost:8000/smile-image/${responseJson.id}`);
+        const imageBlob = await imageResponse.blob();
         const resultImageUrl = URL.createObjectURL(imageBlob);
         setSnapshot(resultImageUrl);
       }
@@ -86,12 +91,23 @@ export default function Home() {
     if (!videoStarted) 
       return;
 
-    const interval = setInterval(async () => {
-      await captureFrame();
-    }, 1000);
+    let doLoop = true;
 
-    return () => clearInterval(interval);
+    const runTaskWithDelay = async () => {
+      while (doLoop) {
+        await captureFrame();
+        await sleep(500);
+      }
+    };
+
+    runTaskWithDelay();
+
+    return () => { doLoop = false; };
   }, [videoStarted]);
+
+  const sleep = async (ms: number) => {
+    return new Promise<void>(resolve => setTimeout(resolve, ms));
+  }
 
   return (
     <div className="m-3">
