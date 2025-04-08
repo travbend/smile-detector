@@ -3,24 +3,22 @@
 import { useRef, useState, useEffect } from "react";
 
 const baseUrl = "http://localhost:8000";
+const emptyCoords = {
+  x: null,
+  y: null,
+  w: null,
+  h: null
+};
 
 export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [hasPermission, setHasPermission] = useState<boolean>(false);
   const [videoStarted, setVideoStarted] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<string | null>(null);
-  const [coords, setCoords] = useState({
-    x: null,
-    y: null,
-    w: null,
-    h: null
-  });
+  const [coords, setCoords] = useState(emptyCoords);
 
   const startVideo = async () => {
-    // TODO: clean up the video stream when the component unmounts
-
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -31,13 +29,11 @@ export default function Home() {
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        setHasPermission(true);
         setVideoStarted(true);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(`Failed to access camera: ${errorMessage}`);
-      setHasPermission(false);
       setVideoStarted(false);
     }
   };
@@ -48,7 +44,6 @@ export default function Home() {
       const tracks = stream.getTracks();
       tracks.forEach(track => track.stop());
       videoRef.current.srcObject = null;
-      setHasPermission(false);
       setVideoStarted(false);
     }
 
@@ -56,54 +51,60 @@ export default function Home() {
       URL.revokeObjectURL(snapshot);
       setSnapshot(null);
     }
+
+    setCoords({
+      x: null,
+      y: null,
+      w: null,
+      h: null
+    });
   };
 
   const captureFrame = async () => {
-    if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      
-      // Set canvas size to match video
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      
-      // Draw current video frame to canvas
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        const imageUrl = canvas.toDataURL('image/png');
-        const response = await fetch(imageUrl);
-        if (!response.ok) 
-          throw new Error(`Failed to fetch file: ${response.statusText}`);
-  
-        const fileBlob = await response.blob();
-        const file = new File([fileBlob], "image.png", { type: fileBlob.type });
+    if (!videoRef.current || !canvasRef.current)
+      return;
 
-        if (file.size === 0)
-          return;
-  
-        const formData = new FormData();
-        formData.append("file", file);
-  
-        const detectResponse = await fetch(baseUrl + "/detect-smile", {
-          method: "POST",
-          body: formData,
-        });
-        const responseJson = await detectResponse.json();
-        setCoords(responseJson.coordinates);
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx)
+      return;
 
-        const params = new URLSearchParams({ id: responseJson.id });
-        const imageResponse = await fetch(baseUrl + `/smile-image?${params}`);
-        const imageBlob = await imageResponse.blob();
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    const baseImageUrl = canvas.toDataURL('image/png');
+    const baseImageResponse = await fetch(baseImageUrl);
+    if (!baseImageResponse.ok) 
+      throw new Error(`Failed to fetch file: ${baseImageResponse.statusText}`);
 
-        let oldSnapshot = snapshot;
-        const resultImageUrl = URL.createObjectURL(imageBlob);
-        setSnapshot(resultImageUrl);
-        if (oldSnapshot != null)
-          URL.revokeObjectURL(oldSnapshot);
-      }
-    }
+    const baseImageBlob = await baseImageResponse.blob();
+    const baseFile = new File([baseImageBlob], "image.png", { type: baseImageBlob.type });
+
+    if (baseFile.size === 0)
+      return;
+
+    const formData = new FormData();
+    formData.append("file", baseFile);
+
+    const detectResponse = await fetch(baseUrl + "/detect-smile", {
+      method: "POST",
+      body: formData,
+    });
+    const detectJson = await detectResponse.json();
+    setCoords(detectJson.coordinates);
+
+    const params = new URLSearchParams({ id: detectJson.id });
+    const imageResponse = await fetch(baseUrl + `/smile-image?${params}`);
+    const imageBlob = await imageResponse.blob();
+
+    let oldSnapshot = snapshot;
+    const resultImageUrl = URL.createObjectURL(imageBlob);
+    setSnapshot(resultImageUrl);
+    if (oldSnapshot != null)
+      URL.revokeObjectURL(oldSnapshot);
   };
 
   useEffect(() => {
@@ -165,6 +166,9 @@ export default function Home() {
           </div>
         </div>
       </div>
+      )}
+      {error && (
+        <p>{error}</p>
       )}
       <video
         className="hidden"

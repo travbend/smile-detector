@@ -1,10 +1,12 @@
 import sqlite3
+import os
 from datetime import datetime
-
-DB_FILE_NAME = "smile-detector.db"
+from config import settings
 
 def connect():
-    return sqlite3.connect(DB_FILE_NAME)
+    conn = sqlite3.connect(os.path.join(settings.app_data_directory, settings.db_file_name))
+    conn.row_factory = sqlite3.Row
+    return conn
 
 def table_exists(table_name):
     with connect() as conn:
@@ -39,18 +41,18 @@ def getDetectionFilename(id: int):
         if result is None:
             return None
         
-        return result[0]
+        return result["file_name"]
 
-def getLatestDetections(since_id: int = None, batch_size: int = 10):
+def getLatestDetections(before_id: int = None, batch_size: int = 10):
     if batch_size is None:
         batch_size = 10
 
     with connect() as conn:
         cursor = conn.cursor()
 
-        if since_id is None:
+        if before_id is None:
             cursor.execute("SELECT * FROM detection ORDER BY id DESC")
         else:
-            cursor.execute("SELECT * FROM detection WHERE id < ? ORDER BY id DESC", (since_id))
+            cursor.execute("SELECT * FROM detection WHERE id < ? ORDER BY id DESC", (before_id,))
 
         return cursor.fetchmany(batch_size)

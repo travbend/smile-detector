@@ -8,11 +8,13 @@ from uuid import uuid4
 import numpy as np
 import db
 from datetime import datetime, timezone
+from config import settings
 
-IMAGE_DIRECTORY = "images"
-os.makedirs(IMAGE_DIRECTORY, exist_ok=True)
-
+# Init environment
+os.makedirs(os.path.join(settings.app_data_directory, settings.images_directory), exist_ok=True)
 db.init()
+
+# Init API
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -24,7 +26,7 @@ app.add_middleware(
 
 @app.post("/detect-smile")
 async def detectSmile(file: UploadFile):
-    if file.size > 10000000: # TODO
+    if file.size > settings.max_image_size:
         raise HTTPException(status_code=400, detail="Image is too large") 
     
     bytes = await file.read()
@@ -48,11 +50,10 @@ async def detectSmile(file: UploadFile):
     (x, y, w, h) = (None, None, None, None)
     if len(smiles) > 0:
         has_smile = True
-        (x, y, w, h) = smiles[0]
-        (x, y, w, h) = (int(x), int(y), int(w), int(h))
-        cv2.rectangle(image, (x, y), (x+w, y+h), (32, 223, 255), 2)
+        (x, y, w, h) = tuple(map(int, smiles[0]))
+        cv2.rectangle(image, (x, y), (x+w, y+h), (32, 223, 255), 2) #color matches UI
 
-    file_path = os.path.join(IMAGE_DIRECTORY, str(uuid4()) + ".png")
+    file_path = os.path.join(settings.app_data_directory, settings.images_directory, str(uuid4()) + ".png")
     cv2.imwrite(file_path, image)
 
     id = db.createDetection(datetime.now(timezone.utc), has_smile, file_path, x, y, w, h)
@@ -81,8 +82,8 @@ async def getImage(id: int):
     )
 
 @app.get("/latest-detections")
-async def getLatestDetections():
-    return db.getLatestDetections()
+async def getLatestDetections(before_id: int = None):
+    return db.getLatestDetections(before_id)
 
 
 if __name__ == "__main__":
