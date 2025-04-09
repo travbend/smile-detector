@@ -6,5 +6,5 @@ React/Python app which detects smile on user's face from the camera. Stores dete
 
 1. Install npm and Node.js
 1. Install the python requirements specified in backend/requirements.txt
-1. Open a terminal window in the "backend" directory and run "python -m api" (or python3)
+1. Open a terminal window in the "backend" directory and run "python -m main" (or python3)
 1. Open a terminal window in the "frontend" directory and run "npm install next@latest react@latest react-dom@latest" then run "npm run dev"
