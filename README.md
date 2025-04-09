@@ -8,4 +8,4 @@ React/Python app which detects smile on user's face from the camera. Stores dete
 1. Install [Next.js](https://nextjs.org/docs/app/getting-started/installation#manual-installation)
 1. Install the python requirements specified in backend/requirements.txt
 1. Open a terminal window in the "backend" directory and run "python -m api"
-1. Open a terminal window in the "frontend" directory and run "npm run dev"
+1. Open a terminal window in the "frontend" directory and run "npm install next@latest react@latest react-dom@latest" then run "npm run dev"
