@@ -24,6 +24,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+async def home():
+    return # For frontend to test if backend is up
+
 @app.post("/detect-smile")
 async def detectSmile(file: UploadFile):
     if file.size > settings.max_image_size:

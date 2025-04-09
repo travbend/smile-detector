@@ -20,6 +20,13 @@ export default function Home() {
 
   const startVideo = async () => {
     try {
+      await fetch(baseUrl);
+    } catch {
+      setError('Unable to reach API');
+      return;
+    }
+
+    try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'user'
@@ -31,6 +38,8 @@ export default function Home() {
         videoRef.current.srcObject = stream;
         setVideoStarted(true);
       }
+
+      setError(null);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(`Failed to access camera: ${errorMessage}`);
