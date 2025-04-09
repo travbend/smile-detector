@@ -9,6 +9,10 @@ from unittest.mock import patch
 @pytest.fixture(scope='session', autouse=True)
 def override_dir():
     with patch.object(settings, 'app_data_directory', 'test_app_data') as mock:
+        db_path = os.path.join(settings.app_data_directory, settings.db_file_name)
+        if os.path.exists(db_path):
+            os.remove(db_path)
+
         init_environment()
         yield mock
         
