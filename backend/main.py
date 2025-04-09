@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 import uvicorn
 import cv2
 import os
@@ -10,12 +11,18 @@ import db
 from datetime import datetime, timezone
 from config import settings
 
-# Init environment
-os.makedirs(os.path.join(settings.app_data_directory, settings.images_directory), exist_ok=True)
-db.init()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Init environment
+    init_environment()
+    yield
+
+def init_environment():
+    os.makedirs(os.path.join(os.getcwd(), settings.app_data_directory, settings.images_directory), exist_ok=True)
+    db.init()
 
 # Init API
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:8000"],
@@ -57,7 +64,7 @@ async def detectSmile(file: UploadFile):
         (x, y, w, h) = tuple(map(int, smiles[0]))
         cv2.rectangle(image, (x, y), (x+w, y+h), (32, 223, 255), 2) #color matches UI
 
-    file_path = os.path.join(settings.app_data_directory, settings.images_directory, str(uuid4()) + ".png")
+    file_path = os.path.join(os.getcwd(), settings.app_data_directory, settings.images_directory, str(uuid4()) + ".png")
     cv2.imwrite(file_path, image)
 
     id = db.createDetection(datetime.now(timezone.utc), has_smile, file_path, x, y, w, h)

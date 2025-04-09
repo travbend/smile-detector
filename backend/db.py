@@ -4,7 +4,8 @@ from datetime import datetime
 from config import settings
 
 def connect():
-    conn = sqlite3.connect(os.path.join(settings.app_data_directory, settings.db_file_name))
+    path = os.path.join(os.getcwd(), settings.app_data_directory, settings.db_file_name)
+    conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -24,12 +25,14 @@ def init():
         if not table_exists("detection"):
             cursor.execute("""CREATE TABLE detection (id INTEGER PRIMARY KEY AUTOINCREMENT, created_at TEXT, 
                            has_smile BOOLEAN, file_name TEXT, x INTEGER, y INTEGER, w INTEGER, h INTEGER)""")
+            conn.commit()
 
 def createDetection(created_at: datetime, has_smile: bool, file_name: str, x: int, y: int, w: int, h: int):
     with connect() as conn:
         cursor = conn.cursor()
         cursor.execute("INSERT INTO detection (created_at, has_smile, file_name, x, y, w, h) VALUES (?, ?, ?, ?, ?, ?, ?)", 
                     (created_at, has_smile, file_name, x, y, w, h))
+        conn.commit()
         return cursor.lastrowid
     
 def getDetectionFilename(id: int):
