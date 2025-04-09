@@ -168,7 +168,9 @@ export default function Home() {
       </div>
       )}
       {error && (
-        <p>{error}</p>
+      <div className="m-3">
+        <p className="p-3 bg-red-100 rounded-xl">{error}</p>
+      </div>
       )}
       <video
         className="hidden"
