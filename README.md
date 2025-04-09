@@ -1,6 +1,6 @@
 # Smile Detector
 
-Detects smiles on user's face from the camera. Stores detected smile images on disk and metadata in a SQLite database.
+React/Python app which detects smile on user's face from the camera. Stores detected smile images on disk and metadata in a SQLite database.
 
 ## Running the App
 
