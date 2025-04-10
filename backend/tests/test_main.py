@@ -18,7 +18,7 @@ def test_missing_image(client):
     assert response.status_code == 404
     
 def test_detection(client):
-    image_name = "test-smile.jpg"
+    image_name = "test_smile.jpg"
     image_path = os.path.join("tests", image_name)
     test_coords = {
         "x": 439,
