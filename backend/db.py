@@ -3,6 +3,11 @@ import os
 from datetime import datetime
 from config import settings
 
+def adapt_datetime(dt):
+    return dt.isoformat()
+
+sqlite3.register_adapter(datetime, adapt_datetime)
+
 def connect():
     path = os.path.join(os.getcwd(), settings.app_data_directory, settings.db_file_name)
     conn = sqlite3.connect(path)
